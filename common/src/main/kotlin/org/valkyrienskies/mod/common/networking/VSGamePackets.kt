@@ -22,11 +22,13 @@ object VSGamePackets {
     fun registerHandlers() {
         PacketPlayerDriving::class.registerServerHandler { driving, iPlayer ->
             val player = (iPlayer as MinecraftPlayer).player as ServerPlayer
-            if (player.vehicle is ShipMountingEntity && (player.vehicle as ShipMountingEntity).isController) {
-                val seat = player.vehicle!! as ShipMountingEntity
-                val ship = seat.level.getShipObjectManagingPos(seat.blockPosition())!! as ShipObjectServer
+            val vehicle = player.vehicle
+            if (vehicle is ShipMountingEntity && (player.vehicle as ShipMountingEntity).isController) {
+                val ship = vehicle.level.getShipObjectManagingPos(vehicle.blockPosition()) as? ShipObjectServer
+                    ?: return@registerServerHandler
+
                 val attachment: SeatedControllingPlayer = ship.getAttachment()
-                    ?: SeatedControllingPlayer(seat.direction.opposite).apply { ship.setAttachment(this) }
+                    ?: SeatedControllingPlayer(vehicle.direction.opposite).apply { ship.setAttachment(this) }
 
 
                 attachment.forwardImpulse = driving.impulse.z
