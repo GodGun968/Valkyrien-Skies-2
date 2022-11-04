@@ -15,7 +15,6 @@ import org.spongepowered.asm.mixin.injection.At;
 import org.spongepowered.asm.mixin.injection.Inject;
 import org.spongepowered.asm.mixin.injection.callback.CallbackInfo;
 import org.valkyrienskies.core.game.IPlayer;
-import org.valkyrienskies.core.game.ships.SerializedShipDataModule;
 import org.valkyrienskies.core.game.ships.ShipObjectServerWorld;
 import org.valkyrienskies.core.pipelines.VSPipeline;
 import org.valkyrienskies.mod.common.IShipObjectWorldServerProvider;
@@ -104,20 +103,11 @@ public abstract class MixinMinecraftServer implements IShipObjectWorldServerProv
         final ShipSavedData shipSavedData = overworld().getDataStorage()
             .computeIfAbsent(ShipSavedData.Companion::createEmpty, ShipSavedData.SAVED_DATA_ID);
 
-        // If there was an error deserializing, re-throw it here so that the game actually crashes.
-        // We would prefer to crash the game here than allow the player keep playing with everything corrupted.
-        final Throwable ex = shipSavedData.getLoadingException();
-        if (ex != null) {
-            System.err.println("VALKYRIEN SKIES ERROR WHILE LOADING SHIP DATA");
-            ex.printStackTrace();
-            throw new RuntimeException(ex);
-        }
+        vsPipeline = shipSavedData.getPipeline();
 
-        // Create ship world and VS Pipeline
-        vsPipeline = ValkyrienSkiesMod.getVsCore().getPipelineComponentFactory()
-            .newPipelineComponent(new SerializedShipDataModule(
-                shipSavedData.getQueryableShipData(), shipSavedData.getChunkAllocator()))
-            .newPipeline();
+        if (vsPipeline == null) {
+            throw new IllegalStateException("VALKYRIEN SKIES ERROR WHILE LOADING SHIP DATA, CRASHING");
+        }
 
         if (vsPipeline.isUsingDummyPhysics()) {
             KrunchSupport.INSTANCE.setKrunchSupported(false);
